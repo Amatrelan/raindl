@@ -3,7 +3,7 @@
 
 use clap::App;
 use clap::Arg;
-use log::{debug, info, trace};
+use log::info;
 use simplelog::*;
 
 use anime_dl::provider::gogoplay::GoGoPlay;
@@ -71,8 +71,8 @@ fn main() {
         .get_matches();
 
     let loggerconfig = ConfigBuilder::new()
-        .add_filter_ignore(format!("{}", "selectors"))
-        .add_filter_ignore(format!("{}", "html5ever"))
+        .add_filter_ignore("selectors".to_string())
+        .add_filter_ignore("html5ever".to_string())
         .build();
 
     CombinedLogger::init(vec![TermLogger::new(
@@ -97,7 +97,7 @@ fn main() {
         }
     }
 
-    if let None = search.provider {
+    if search.provider.is_none() {
         search.provider = Some(Box::new(GoGoPlay::default()));
     }
 

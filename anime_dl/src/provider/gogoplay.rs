@@ -30,14 +30,13 @@ impl Provider for GoGoPlay {
         debug!("Looking episode {} for {:?}", episode, anime);
         let mut links: Vec<String> = Vec::new();
 
-        match anime.max_episode {
-            Some(val) => {
-                if val < episode {
-                    error!("Episode {} is higher than {}", episode, val);
-                    return Err("That high episode number is not available");
-                }
+        if let Some(val) = anime.max_episode {
+            if val < episode {
+                error!("Episode {} is higher than {}", episode, val);
+                return Err("That high episode number is not available");
             }
-            _ => {}
+        } else {
+            return Err("Could not find episodes for that series");
         }
 
         let base_url_len = self.base_url.len();
@@ -122,15 +121,15 @@ impl Provider for GoGoPlay {
             }
         }
 
-        if qualities.len() == 0 {
+        if qualities.is_empty() {
             return Err("No link found");
         }
 
         anime.qualities = Some(qualities);
-        return Ok(anime);
+        Ok(anime)
     }
 
-    fn search_anime(&self, what: &String) -> Result<Vec<Anime>, &'static str> {
+    fn search_anime(&self, what: &str) -> Result<Vec<Anime>, &'static str> {
         let search_url: String = format!("{}/search.html?keyword={}", self.base_url, what);
         let resp = reqwest::blocking::get(search_url.as_str())
             .unwrap()
@@ -158,14 +157,14 @@ impl Provider for GoGoPlay {
 
                 tmp_anime.title = tmp_anime.root_url.clone()[*begin + 1..*end].to_string();
 
-                match episode_number.to_string().parse::<u32>() {
-                    Ok(val) => tmp_anime.max_episode = Some(val),
-                    _ => {}
+                if let Ok(val) = episode_number.to_string().parse::<u32>() {
+                    tmp_anime.max_episode = Some(val)
                 }
+
                 animes.push(tmp_anime);
             }
         }
-        if animes.len() == 0 {
+        if animes.is_empty() {
             return Err("There is no anime with that name");
         }
 
