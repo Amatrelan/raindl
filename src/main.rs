@@ -1,30 +1,27 @@
 // mod anime;
 // mod provider;
 
-use clap::App;
-use clap::Arg;
+use std::process::{Command, Stdio};
+
+use anime_dl::provider::{GoGoPlay, Provider};
+use clap::{App, Arg};
 use log::info;
 use simplelog::*;
 
-use anime_dl::provider::gogoplay::GoGoPlay;
-use anime_dl::provider::Provider;
-
-use std::process::{Command, Stdio};
-
 pub struct QuerySet {
     pub provider: Option<Box<dyn Provider>>,
-    pub series: String,
-    pub episode: Option<u32>,
-    pub ignore: Option<String>,
+    pub series:   String,
+    pub episode:  Option<u32>,
+    pub ignore:   Option<String>,
 }
 
 impl Default for QuerySet {
     fn default() -> Self {
         Self {
             provider: None,
-            series: String::default(),
-            episode: None,
-            ignore: None,
+            series:   String::default(),
+            episode:  None,
+            ignore:   None,
         }
     }
 }
@@ -75,12 +72,8 @@ fn main() {
         .add_filter_ignore("html5ever".to_string())
         .build();
 
-    CombinedLogger::init(vec![TermLogger::new(
-        LevelFilter::Debug,
-        loggerconfig,
-        TerminalMode::Mixed,
-    )])
-    .expect("Error setting simplelogger.");
+    CombinedLogger::init(vec![TermLogger::new(LevelFilter::Debug, loggerconfig, TerminalMode::Mixed)])
+        .expect("Error setting simplelogger.");
 
     let mut search = QuerySet::default();
 
@@ -110,11 +103,7 @@ fn main() {
         info!("Episode number was given {}", episode);
         // TODO: Should this actually be f32? There is quite few episodes with weird numbering.
         // TODO: NO. Episodes are whole numbered, why the hell I thought that.
-        search.episode = Some(
-            episode
-                .parse::<u32>()
-                .expect("You should give positive whole number"),
-        );
+        search.episode = Some(episode.parse::<u32>().expect("You should give positive whole number"));
     }
 
     if let Some(ignore) = matches.value_of("ignore") {
@@ -124,16 +113,15 @@ fn main() {
     // TODO: Isn't there some sexier way to make this? Somehow feels clunky to first define variable and then write result to it.
     let mut found = vec![];
     if let Some(provider) = &search.provider {
-        found = provider
-            .search_anime(&search.series)
-            .expect("Could not find that series");
+        found = provider.search_anime(&search.series).expect("Could not find that series");
     }
 
-    if search.episode == None {
+    if search.episode.is_none() {
         for each in found {
             println!("{}", each);
-            std::process::exit(0)
         }
+
+        std::process::exit(0)
     } else {
         let link = search
             .provider
@@ -141,19 +129,31 @@ fn main() {
             .anime_episode(found[0].clone(), search.episode.unwrap())
             .expect("Episode with that number not found");
 
-        if matches.is_present("watch") {
-            let mut cmd = Command::new("mpv")
-                .arg(link.to_string())
-                .stdout(Stdio::inherit())
-                .stdin(Stdio::inherit())
-                .spawn()
-                .expect("Problem starting mpv");
+        if let Some(qualities) = link.qualities {
+            let mut highest = &qualities[0];
 
-            let status = cmd.wait();
+            for each in &qualities {
+                if highest.quality > each.quality {
+                    continue;
+                } else {
+                    highest = each;
+                }
+            }
 
-            println!("Exited with status {:?}\nHave a nice day", status);
-        } else {
-            println!("{}", link);
+            if matches.is_present("watch") {
+                let mut cmd = Command::new("mpv")
+                    .arg(&highest.url)
+                    .stdout(Stdio::inherit())
+                    .stdin(Stdio::inherit())
+                    .spawn()
+                    .expect("Problem starting mpv");
+
+                let status = cmd.wait();
+
+                println!("Exited with status {:?}\nHave a nice day", status);
+            } else {
+                println!("{}", &highest.url);
+            }
         }
     }
 }

@@ -1,25 +1,43 @@
-// Anime page: https://gogo-play.net/videos/bleach-episode-1
-// Anime  title: (), root_url: ( root_url: (), max_episode: (), qualities: () root_url: (), max_episode: (), qualities: () root_url: (), max_episode: (), qualities: ()), max_episode: (), qualities: ()Search Page: https://gogo-play.net/search.html?keyword=Bleach
-// Anime Download page: https://gogo-stream.com/download?id=MTE3MTU=&title=Bleach&typesub=SUB&sub=eyJlbiI6bnVsbCwiZXMiOm51bGx9&cover=aW1hZ2VzL2FuaW1lL0IvYmxlYWNoLmpwZw==&refer=https://gogo-play.net/videos/bleach-episode-366
-
 use log::*;
-
 use scraper::*;
 
-use super::Anime;
 use super::Provider;
-use crate::anime::Quality;
-use crate::anime::QualityUrl;
+use crate::types::{Anime, EpisodeUrl, Quality};
 
 pub struct GoGoPlay {
-    base_url: String,
+    base_url:          String,
     download_base_url: String,
+}
+
+impl GoGoPlay {
+    fn get_title_from_url(&self, url: &str) -> Result<String, &'static str> {
+        debug!("Url: {}", url);
+
+        let start = &url.rfind('/');
+        let end = &url.rfind("-episode");
+
+        debug!("Begin: {:?}, End: {:?}", start, end);
+
+        if let Some(begin) = start {
+            if let Some(ending) = end {
+                let name = url[*begin + 1..*ending].to_string();
+                debug!("Name: {}", name);
+                return Ok(name);
+            } else {
+                debug!("Ending is None")
+            }
+        } else {
+            debug!("Begin is None")
+        }
+
+        Err("Could not parse the name")
+    }
 }
 
 impl Default for GoGoPlay {
     fn default() -> Self {
         Self {
-            base_url: String::from("https://gogo-play.net"),
+            base_url:          String::from("https://gogo-play.net"),
             download_base_url: String::from("https://gogo-stream.com/download"),
         }
     }
@@ -45,24 +63,20 @@ impl Provider for GoGoPlay {
 
         let url = format!("{}{}-{}", self.base_url, base_url, episode);
         debug!("Fetching page with url {}", url);
-        let resp = reqwest::blocking::get(url.as_str())
-            .unwrap()
-            .text()
-            .unwrap();
+        let resp = reqwest::blocking::get(url.as_str()).unwrap().text().unwrap();
         let document = Html::parse_document(resp.as_str());
         let selector = Selector::parse("iframe").unwrap();
         for element in document.select(&selector) {
+            // TODO: Rewrite this with regex, I don't know what came to me to write it like this.
             let source = &element.value().attr("src").unwrap()[2..];
             let begin = &source.find("streaming.php").unwrap();
             let e = begin + String::from("streaming.php").len();
             let end = &source[e..];
+
             let vid_download_url = format!("{}{}", self.download_base_url, end);
 
-            let d_resp = reqwest::blocking::get(vid_download_url.as_str())
-                .unwrap()
-                .text()
-                .unwrap();
-            // println!("{}", d_resp);
+            let d_resp = reqwest::blocking::get(vid_download_url.as_str()).unwrap().text().unwrap();
+            // TODO: Rewrite this.
             let d_document = Html::parse_document(d_resp.as_str());
             let d_selector = Selector::parse("div.dowload").unwrap();
             let d_link_selector = Selector::parse("a").unwrap();
@@ -73,49 +87,49 @@ impl Provider for GoGoPlay {
             }
         }
 
-        let mut qualities: Vec<QualityUrl> = vec![];
+        let mut qualities: Vec<EpisodeUrl> = vec![];
 
         // TODO: Fix this... why I even thought this will be good way to handle.
         for each in &links {
             if each.contains("1080p") {
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::P1080,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             } else if each.contains("HDP") {
                 debug!("Episode url: {}, Quality {:?}", each, Quality::P1080);
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::P1080,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             } else if each.contains("720p") {
                 debug!("Episode url: {}, Quality {:?}", each, Quality::P720);
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::P720,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             } else if each.contains("480p") {
                 debug!("Episode url: {}, Quality {:?}", each, Quality::P480);
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::P480,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             } else if each.contains("360p") {
                 debug!("Episode url: {}, Quality {:?}", each, Quality::P360);
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::P360,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             } else {
                 debug!("Episode url: {}, Quality {:?}", each, Quality::Unknown);
-                qualities.push(QualityUrl {
+                qualities.push(EpisodeUrl {
                     quality: Quality::Unknown,
-                    url: each.into(),
+                    url:     each.into(),
                 });
                 continue;
             }
@@ -131,10 +145,7 @@ impl Provider for GoGoPlay {
 
     fn search_anime(&self, what: &str) -> Result<Vec<Anime>, &'static str> {
         let search_url: String = format!("{}/search.html?keyword={}", self.base_url, what);
-        let resp = reqwest::blocking::get(search_url.as_str())
-            .unwrap()
-            .text()
-            .unwrap();
+        let resp = reqwest::blocking::get(search_url.as_str()).unwrap().text().unwrap();
         let document = Html::parse_document(resp.as_str());
         let selector = Selector::parse("ul.listing").unwrap();
         let video_selector = Selector::parse("a").unwrap();
@@ -144,24 +155,23 @@ impl Provider for GoGoPlay {
         // This trait only needs to return what is expected, not to do everything required to come in that solution.
         for element in document.select(&selector) {
             for video in element.select(&video_selector) {
-                let mut tmp_anime = Anime::default();
-                let anime_name = video.value().attr("href").unwrap().to_string();
-                let last_dash = anime_name.rfind('-').unwrap();
-                let episode_number = &anime_name[last_dash + 1..];
-                tmp_anime.max_episode = Some(episode_number.parse::<u32>().unwrap());
-                tmp_anime.root_url =
-                    format!("{}{}", self.base_url, anime_name[..last_dash].to_string());
+                let mut tmp = Anime::default();
+                let link = video.value().attr("href").unwrap().to_string();
 
-                let begin = &tmp_anime.root_url.rfind('/').unwrap();
-                let end = &tmp_anime.root_url.rfind("-episode").unwrap();
+                let episode_str = "-episode-";
+                let last_dash = link.rfind(episode_str).unwrap();
+                let episode_number = &link[last_dash + episode_str.len()..];
+                debug!("{}", episode_number);
+                tmp.max_episode = Some(episode_number.parse::<u32>().unwrap());
+                tmp.root_url = format!("{}{}", self.base_url, link[..last_dash].to_string());
 
-                tmp_anime.title = tmp_anime.root_url.clone()[*begin + 1..*end].to_string();
+                tmp.title = self.get_title_from_url(&link).expect("Error while reading title");
 
                 if let Ok(val) = episode_number.to_string().parse::<u32>() {
-                    tmp_anime.max_episode = Some(val)
+                    tmp.max_episode = Some(val)
                 }
 
-                animes.push(tmp_anime);
+                animes.push(tmp);
             }
         }
         if animes.is_empty() {
@@ -190,22 +200,19 @@ mod test {
         let gogo = GoGoPlay::default();
 
         assert_eq!(
-            gogo.search_anime(&"Bleach diamond dust".to_string())
-                .unwrap(),
+            gogo.search_anime(&"Bleach diamond dust".to_string()).unwrap(),
             vec![
                 Anime {
-                    title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
-                    root_url: "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
-                        .to_string(),
+                    title:       "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
+                    root_url:    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion".to_string(),
                     max_episode: Some(1),
-                    qualities: None
+                    qualities:   None,
                 },
                 Anime {
-                    title: "bleach-the-movie-2-the-diamonddust-rebellion-dub".to_string(),
-                    root_url: "https://gogo-play.net/videos/bleach-the-movie-2-the-diamonddust-rebellion-dub-episode"
-                        .to_string(),
+                    title:       "bleach-the-movie-2-the-diamonddust-rebellion-dub".to_string(),
+                    root_url:    "https://gogo-play.net/videos/bleach-the-movie-2-the-diamonddust-rebellion-dub".to_string(),
                     max_episode: Some(1),
-                    qualities: None
+                    qualities:   None,
                 }
             ]
         );
@@ -217,12 +224,10 @@ mod test {
     fn test_anime_episode() {
         let gogo = GoGoPlay::default();
         let test_anime = Anime {
-            title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
-            root_url:
-                "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
-                    .to_string(),
+            title:       "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
+            root_url:    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion".to_string(),
             max_episode: Some(1),
-            qualities: None,
+            qualities:   None,
         };
 
         assert_eq!(
@@ -230,17 +235,17 @@ mod test {
             Anime {
                 title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
                 root_url:
-                    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
+                    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion"
                         .to_string(),
                 max_episode: Some(1),
                 qualities: Some(
-                    vec![QualityUrl{ quality: Quality::P360, url: "https://cdn6.cloud9xx.com/user1342/d41902e8565730403c9a5e6a66468d24/EP.1.360p.mp4?token=_MHHryK3ACnYdiH8HhwPMQ&expires=1616792244&id=40445".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "https://streamsb.net/d/1uif2b9szp8n.html".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "https://streamtape.com/v/Dj8MPk03xqtka69/bleach-movie-2-the-diamond-dust-rebellion-episode-1.mp4".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "https://dood.to/d/8mqh9jsx8l4u".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "https://fcdn.stream/f/zyvn-nnz8o1".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "https://mixdrop.co/f/7rrvjlvvaedprw".to_string()},
-                         QualityUrl{ quality: Quality::Unknown, url: "http://www.mp4upload.com/yweqp5bwon2s".to_string()}]
+                    vec![EpisodeUrl{ quality: Quality::P360, url: "https://cdn6.cloud9xx.com/user1342/d41902e8565730403c9a5e6a66468d24/EP.1.360p.mp4?token=_MHHryK3ACnYdiH8HhwPMQ&expires=1616792244&id=40445".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "https://streamsb.net/d/1uif2b9szp8n.html".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "https://streamtape.com/v/Dj8MPk03xqtka69/bleach-movie-2-the-diamond-dust-rebellion-episode-1.mp4".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "https://dood.to/d/8mqh9jsx8l4u".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "https://fcdn.stream/f/zyvn-nnz8o1".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "https://mixdrop.co/f/7rrvjlvvaedprw".to_string()},
+                         EpisodeUrl{ quality: Quality::Unknown, url: "http://www.mp4upload.com/yweqp5bwon2s".to_string()}]
                 )
             }
         );

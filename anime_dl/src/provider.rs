@@ -1,6 +1,7 @@
-pub mod gogoplay;
+mod gogoplay;
+pub use gogoplay::GoGoPlay;
 
-use crate::anime::Anime;
+use crate::types::Anime;
 
 /// Is core of all providers, it's required to implement for all providers.
 pub trait Provider {

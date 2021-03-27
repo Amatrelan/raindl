@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Jarmo Riikonen <amatrelan@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "Anime fetcher to watch with mpv"
+description = "Anime link fetcher to watch with mpv"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,6 +18,4 @@ anime_dl = { path="./anime_dl" }
 
 clap = "3.0.0-beta.2"
 log = "0.4.14"
-reqwest = { version = "0.11.1", features = [ "blocking", "json" ] }
-scraper = "0.12.0"
 simplelog = "0.9.0"
