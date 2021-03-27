@@ -1,12 +1,13 @@
-mod anime;
-mod provider;
+// mod anime;
+// mod provider;
 
 use clap::App;
 use clap::Arg;
 use log::{debug, info, trace};
-use provider::gogoplay::GoGoPlay;
-use provider::Provider;
 use simplelog::*;
+
+use anime_dl::provider::gogoplay::GoGoPlay;
+use anime_dl::provider::Provider;
 
 use std::process::{Command, Stdio};
 

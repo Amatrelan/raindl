@@ -2,7 +2,7 @@ use std::fmt;
 
 // This is global, so what all I need?
 // Provider should be able to reconstruct whole.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Quality {
     P360,
     P480,
@@ -24,7 +24,7 @@ impl fmt::Debug for Quality {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct QualityUrl {
     pub url: String,
     pub quality: Quality,
@@ -36,7 +36,7 @@ impl fmt::Debug for QualityUrl {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Anime {
     /// Name of the series ex: `Bleach`
     pub title: String,

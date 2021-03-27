@@ -1,5 +1,5 @@
 // Anime page: https://gogo-play.net/videos/bleach-episode-1
-// Anime Search Page: https://gogo-play.net/search.html?keyword=Bleach
+// Anime  title: (), root_url: ( root_url: (), max_episode: (), qualities: () root_url: (), max_episode: (), qualities: () root_url: (), max_episode: (), qualities: ()), max_episode: (), qualities: ()Search Page: https://gogo-play.net/search.html?keyword=Bleach
 // Anime Download page: https://gogo-stream.com/download?id=MTE3MTU=&title=Bleach&typesub=SUB&sub=eyJlbiI6bnVsbCwiZXMiOm51bGx9&cover=aW1hZ2VzL2FuaW1lL0IvYmxlYWNoLmpwZw==&refer=https://gogo-play.net/videos/bleach-episode-366
 
 use log::*;
@@ -40,7 +40,11 @@ impl Provider for GoGoPlay {
             _ => {}
         }
 
-        let url = format!("{}{}-{}", self.base_url, anime.root_url, episode);
+        let base_url_len = self.base_url.len();
+
+        let base_url = anime.root_url[base_url_len..].to_string();
+
+        let url = format!("{}{}-{}", self.base_url, base_url, episode);
         debug!("Fetching page with url {}", url);
         let resp = reqwest::blocking::get(url.as_str())
             .unwrap()
@@ -146,7 +150,8 @@ impl Provider for GoGoPlay {
                 let last_dash = anime_name.rfind('-').unwrap();
                 let episode_number = &anime_name[last_dash + 1..];
                 tmp_anime.max_episode = Some(episode_number.parse::<u32>().unwrap());
-                tmp_anime.root_url = anime_name[..last_dash].to_string();
+                tmp_anime.root_url =
+                    format!("{}{}", self.base_url, anime_name[..last_dash].to_string());
 
                 let begin = &tmp_anime.root_url.rfind('/').unwrap();
                 let end = &tmp_anime.root_url.rfind("-episode").unwrap();
@@ -160,7 +165,85 @@ impl Provider for GoGoPlay {
                 animes.push(tmp_anime);
             }
         }
+        if animes.len() == 0 {
+            return Err("There is no anime with that name");
+        }
 
         Ok(animes)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn fetch_animes() {
+        let gogo = GoGoPlay::default();
+
+        assert!(gogo.search_anime(&"Bleach".to_string()).is_ok());
+        assert!(gogo.search_anime(&"Naruto".to_string()).is_ok());
+        assert!(gogo.search_anime(&"asdf".to_string()).is_err());
+    }
+
+    #[test]
+    fn test_anime_struct_data() {
+        let gogo = GoGoPlay::default();
+
+        assert_eq!(
+            gogo.search_anime(&"Bleach diamond dust".to_string())
+                .unwrap(),
+            vec![
+                Anime {
+                    title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
+                    root_url: "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
+                        .to_string(),
+                    max_episode: Some(1),
+                    qualities: None
+                },
+                Anime {
+                    title: "bleach-the-movie-2-the-diamonddust-rebellion-dub".to_string(),
+                    root_url: "https://gogo-play.net/videos/bleach-the-movie-2-the-diamonddust-rebellion-dub-episode"
+                        .to_string(),
+                    max_episode: Some(1),
+                    qualities: None
+                }
+            ]
+        );
+    }
+
+    // TODO: Token in url is generated on load, so cannot test this as for now. Look way to only partial comparsion in string.
+    #[ignore]
+    #[test]
+    fn test_anime_episode() {
+        let gogo = GoGoPlay::default();
+        let test_anime = Anime {
+            title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
+            root_url:
+                "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
+                    .to_string(),
+            max_episode: Some(1),
+            qualities: None,
+        };
+
+        assert_eq!(
+            gogo.anime_episode(test_anime, 1).unwrap(),
+            Anime {
+                title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
+                root_url:
+                    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion-episode"
+                        .to_string(),
+                max_episode: Some(1),
+                qualities: Some(
+                    vec![QualityUrl{ quality: Quality::P360, url: "https://cdn6.cloud9xx.com/user1342/d41902e8565730403c9a5e6a66468d24/EP.1.360p.mp4?token=_MHHryK3ACnYdiH8HhwPMQ&expires=1616792244&id=40445".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "https://streamsb.net/d/1uif2b9szp8n.html".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "https://streamtape.com/v/Dj8MPk03xqtka69/bleach-movie-2-the-diamond-dust-rebellion-episode-1.mp4".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "https://dood.to/d/8mqh9jsx8l4u".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "https://fcdn.stream/f/zyvn-nnz8o1".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "https://mixdrop.co/f/7rrvjlvvaedprw".to_string()},
+                         QualityUrl{ quality: Quality::Unknown, url: "http://www.mp4upload.com/yweqp5bwon2s".to_string()}]
+                )
+            }
+        );
     }
 }
