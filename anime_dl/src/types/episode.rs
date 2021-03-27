@@ -6,12 +6,12 @@ use super::quality::Quality;
 // Provider should be able to reconstruct whole.
 
 #[derive(Clone, PartialEq)]
-pub struct EpisodeUrl {
+pub struct Episode {
     pub url:     String,
     pub quality: Quality,
 }
 
-impl fmt::Debug for EpisodeUrl {
+impl fmt::Debug for Episode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}: {:?}", self.quality, self.url)
     }
@@ -23,7 +23,7 @@ mod tests {
 
     #[test]
     fn test_episode_url_print_debug() {
-        let test = EpisodeUrl {
+        let test = Episode {
             url:     "https://example.com/some-link-to-website".to_string(),
             quality: Quality::P1080,
         };

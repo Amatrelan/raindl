@@ -1,0 +1,26 @@
+#+TITLE: Readme
+* Before everything
+i dev on linux, so if there is problem in windows side can't do much, tests runs on windows too so something is working.
+
+* How
+** Get url
+=raindl -s bleach -e 1=
+** Open directly in mpv
+=raindl -s bleach -e 1 -w=
+
+** Other
+you can get all possible parameters with =raindl -h=
+
+** Nice to have soon (if ever)
+- cache / database so no need to query over internet all the time.
+- ignore parameter, so if user don't wanna dubs then he can ignore those.
+- more providers
+- implement some tracker functionality
+  + along with daemon mode for downloads
+  + torrent support? ([subs-please])
+- implement [[https://github.com/erengy/anime-relations][anime-relations]]
+- a ton of more tests, there is so many different ways things can break right now
+
+* Known problems.
+- anime has "extra" episodes, for ex. =Tensei shitara Slime Datta Ken 24.9=, won't work right now, you can watch normal episodes as is.
+- only =mpv= supported with =-w= flag

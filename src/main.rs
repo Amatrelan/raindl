@@ -1,10 +1,7 @@
-// mod anime;
-// mod provider;
-
 use std::process::{Command, Stdio};
 
 use anime_dl::provider::{GoGoPlay, Provider};
-use clap::{App, Arg};
+use clap::Clap;
 use log::info;
 use simplelog::*;
 
@@ -26,94 +23,75 @@ impl Default for QuerySet {
     }
 }
 
+#[derive(Clap)]
+#[clap(version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
+struct Opts {
+    #[clap(long, short, default_value = "gogoplay", about = "Select provider what to use, defaults to gogoplay", possible_values = &["gogoplay"])]
+    provider: String,
+    #[clap(long, short, about = "What series trying to find?")]
+    series:   String,
+    #[clap(long, short, about = "Episode number, only whole number episodes are possible")]
+    episode:  Option<u32>,
+    // #[clap(long, short, about = "WIP: What string to ignore while searching animes ex. `dub`")]
+    // ignore:   Option<String>,
+    #[clap(short, about = "Open in mpv episode what is found.")]
+    watch:    bool,
+    #[clap(long, short, parse(from_occurrences), about = "I tell you a story, a sad one.")]
+    verbose:  u8,
+}
+
 fn main() {
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .arg(
-            Arg::new("provider")
-                .short('p')
-                .long("provider")
-                .takes_value(true)
-                .about("Select provider, defaults to GoGoPlay for now."),
-        )
-        .arg(
-            Arg::new("series")
-                .short('s')
-                .long("series")
-                .about("Search series")
-                .required(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("episode")
-                .short('e')
-                .long("episode")
-                .about("episode number, selects first anime what provider gives.")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("ignore")
-                .short('i')
-                .long("ignore")
-                .about("TODO: string value what can be ignored from name, ex dub")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("watch")
-                .short('w')
-                .long("watch")
-                .about("If this is given mpv is spawn to watch"),
-        )
-        .get_matches();
+    let opts: Opts = Opts::parse();
 
     let loggerconfig = ConfigBuilder::new()
         .add_filter_ignore("selectors".to_string())
         .add_filter_ignore("html5ever".to_string())
         .build();
 
-    CombinedLogger::init(vec![TermLogger::new(LevelFilter::Debug, loggerconfig, TerminalMode::Mixed)])
+    let verb = match opts.verbose {
+        0 => {
+            if cfg!(debug_assertions) {
+                eprintln!("Debuggin on, if you don't need debug logging build release");
+                LevelFilter::Debug
+            } else {
+                LevelFilter::Error
+            }
+        }
+        1 => LevelFilter::Warn,
+        2 => LevelFilter::Info,
+        3 => LevelFilter::Debug,
+        _ => LevelFilter::Trace,
+    };
+
+    CombinedLogger::init(vec![TermLogger::new(verb, loggerconfig, TerminalMode::Mixed, ColorChoice::Auto)])
         .expect("Error setting simplelogger.");
 
     let mut search = QuerySet::default();
 
-    if let Some(provider) = matches.value_of("provider") {
-        match provider {
-            "gogoplay" => {
-                info!("GoGoPlay provider selected");
-                search.provider = Some(Box::new(GoGoPlay::default()));
-            }
-            _ => {
-                info!("GoGoPlay provider selected by default");
-                search.provider = Some(Box::new(GoGoPlay::default()))
-            }
+    match opts.provider.as_ref() {
+        "gogoplay" => {
+            info!("GoGoPlay provider selected");
+            search.provider = Some(Box::new(GoGoPlay::default()));
+        }
+        _ => {
+            info!("GoGoPlay provider selected by default");
+            search.provider = Some(Box::new(GoGoPlay::default()))
         }
     }
 
-    if search.provider.is_none() {
-        search.provider = Some(Box::new(GoGoPlay::default()));
-    }
+    search.series = opts.series;
+    search.episode = opts.episode;
+    // search.ignore = opts.ignore;
 
-    if let Some(series) = matches.value_of("series") {
-        info!("Series was given {}", series);
-        search.series = series.to_string();
-    }
-
-    if let Some(episode) = matches.value_of("episode") {
-        info!("Episode number was given {}", episode);
-        // TODO: Should this actually be f32? There is quite few episodes with weird numbering.
-        // TODO: NO. Episodes are whole numbered, why the hell I thought that.
-        search.episode = Some(episode.parse::<u32>().expect("You should give positive whole number"));
-    }
-
-    if let Some(ignore) = matches.value_of("ignore") {
-        search.ignore = Some(ignore.to_string());
-    }
-
-    // TODO: Isn't there some sexier way to make this? Somehow feels clunky to first define variable and then write result to it.
     let mut found = vec![];
     if let Some(provider) = &search.provider {
-        found = provider.search_anime(&search.series).expect("Could not find that series");
+        found = match provider.search_anime(&search.series) {
+            Ok(val) => val,
+            Err(_) => {
+                eprintln!("404 Anime not found");
+                std::process::exit(10);
+            }
+        }
     }
 
     if search.episode.is_none() {
@@ -140,7 +118,7 @@ fn main() {
                 }
             }
 
-            if matches.is_present("watch") {
+            if opts.watch {
                 let mut cmd = Command::new("mpv")
                     .arg(&highest.url)
                     .stdout(Stdio::inherit())
@@ -150,7 +128,7 @@ fn main() {
 
                 let status = cmd.wait();
 
-                println!("Exited with status {:?}\nHave a nice day", status);
+                println!("Exited mpv with code {}\nHave a nice day", status.unwrap())
             } else {
                 println!("{}", &highest.url);
             }

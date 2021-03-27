@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::episode::EpisodeUrl;
+use super::episode::Episode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Anime {
@@ -11,7 +11,7 @@ pub struct Anime {
     /// Episode count what is known, or None
     pub max_episode: Option<u32>,
     /// This shoudl be removed?
-    pub qualities:   Option<Vec<EpisodeUrl>>,
+    pub qualities:   Option<Vec<Episode>>,
 }
 
 impl Default for Anime {

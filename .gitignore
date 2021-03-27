@@ -1,3 +1,5 @@
-/target
+target/
 
 *.html
+
+.gdb_history

@@ -5,12 +5,13 @@ authors = ["Jarmo Riikonen <amatrelan@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "Anime link fetcher to watch with mpv"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
 members = [
-        "anime_dl"
+   "anime_dl"
 ]
 
 [dependencies]
@@ -18,4 +19,4 @@ anime_dl = { path="./anime_dl" }
 
 clap = "3.0.0-beta.2"
 log = "0.4.14"
-simplelog = "0.9.0"
+simplelog = "0.10.0"
