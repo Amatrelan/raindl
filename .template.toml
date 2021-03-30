@@ -1,0 +1,12 @@
+[[tags]]
+footers = ["Fixes"]
+name = "default"
+tag = "default"
+
+[footer]
+once = false
+text = "<!-- next-url -->"
+
+[header]
+once = false
+text = "<!-- next-header -->"
