@@ -1,8 +1,9 @@
 categories = ["Added", "Changed", "Fixed", "Improved", "Removed"]
 category_delimiters = ["[", "]"]
 colored_output = true
+default_template = ".template.toml"
 enable_debug = false
-excluded_commit_tags = []
+excluded_commit_tags = ["release"]
 enable_footers = true
 show_commit_hash = true
 show_prefix = false
