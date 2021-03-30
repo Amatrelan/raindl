@@ -1,11 +1,10 @@
 categories = ["Added", "Changed", "Fixed", "Improved", "Removed"]
 category_delimiters = ["[", "]"]
 colored_output = true
-default_template = ".template.toml"
-enable_debug = false
-excluded_commit_tags = ["release"]
-enable_footers = true
-show_commit_hash = true
+enable_debug = true
+excluded_commit_tags = []
+enable_footers = false
+show_commit_hash = false
 show_prefix = false
 sort_by = "date"
-template_prefix = "# JIRA-1234"
+template_prefix = "JIRA-1234"
