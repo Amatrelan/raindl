@@ -37,15 +37,19 @@ exclude-labels:
   - 'skip-changelog'
 
 autolabeler:
-  - label: 'chore'
+  - label: 'doc'
     files:
       - '*.md'
       - '*.org'
     branch:
-      - '/docs{0,1}\/.+/'
+      - '/doc/i'
   - label: 'bug'
     title:
       - '/fix/i'
+    branch:
+      - '/bugfix/i'
   - label: 'enhancement'
     title:
       - '/added/i'
+    branch:
+      - '/feature/i'"
