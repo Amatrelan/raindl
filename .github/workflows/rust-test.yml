@@ -1,8 +1,6 @@
 name: build and test
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
 
@@ -15,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [ stable, nightly ]
+        rust: nightly
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
