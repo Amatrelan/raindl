@@ -1,3 +1,13 @@
 branchName: full
 silent: false
 autoCloseIssue: true
+
+branches:
+  - label: enhancement
+    prefix: feature/
+  - label: bug
+    prefix: bugfix/
+  - label: doc
+    prefix: doc/
+  - label: question
+    skip: true
