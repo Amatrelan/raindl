@@ -1,3 +1,5 @@
+name: Create issue branch
+
 on:
     issues:
         types: [assigned]
