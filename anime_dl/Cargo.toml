@@ -3,6 +3,12 @@ name = "anime_dl"
 version = "0.1.0"
 authors = ["Jarmo Riikonen <amatrelan@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "Heart ❤ of the raindl"
+repository = "https://github.com/Amatrelan/raindl"
+readme = "README.md"
+keywords = ["anime", "web", "scraper"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

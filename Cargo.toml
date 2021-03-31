@@ -6,6 +6,8 @@ edition = "2018"
 license = "MIT"
 description = "Anime link fetcher to watch with mpv"
 publish = false
+repository = "https://github.com/Amatrelan/raindl"
+readme = "README.org"
 
 [profile.release]
 lto = true

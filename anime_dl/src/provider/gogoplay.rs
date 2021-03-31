@@ -20,7 +20,10 @@ fn get_title_from_url(url: &str) -> Result<String> {
 
     if let Some(begin) = start {
         if let Some(ending) = end {
-            let name = url[*begin + 1..*ending].to_string();
+            let name = url
+                .get(*begin + 1..*ending)
+                .expect("There is some error while getting name.")
+                .to_string();
             debug!("Name: {}", name);
             return Ok(name);
         }
@@ -39,25 +42,24 @@ impl Default for GoGoPlay {
 }
 
 impl Provider for GoGoPlay {
+    // TODO: Fix this, too complex and annoying to read.
+    #[allow(clippy::cognitive_complexity)]
     fn anime_episode(&self, mut anime: Anime, episode: u32) -> Result<Anime> {
         debug!("Looking episode {} for {:?}", episode, anime);
         let mut links: Vec<String> = Vec::new();
 
         let base_url_len = self.base_url.len();
-        let base_url = anime.root_url[base_url_len..].to_string();
+        let base_url = anime.root_url.get(base_url_len..).expect("Error while getting root url").to_owned();
         let url = format!("{}{}-episode-{}", self.base_url, base_url, episode);
         debug!("Fetching page with url {}", url);
         let resp = reqwest::blocking::get(url.as_str())?.text()?;
 
         let document = Html::parse_document(resp.as_str());
-        let selector = match Selector::parse("iframe") {
-            Ok(v) => v,
-            Err(_) => panic!("Failed to build selector"),
-        };
+        let selector = Selector::parse("iframe").expect("Failed to build 'iframe' selector");
 
         for element in document.select(&selector) {
             let source = match &element.value().attr("src") {
-                Some(v) => v[2..].to_owned(),
+                Some(v) => v.get(2..).expect("Error while getting src block").to_owned(),
                 None => panic!("Failed to get element src"),
             };
             debug!("source: {:?}", source);
@@ -68,7 +70,7 @@ impl Provider for GoGoPlay {
             };
 
             let e = begin + "streaming.php".len();
-            let end = &source[e..];
+            let end = &source.get(e..).expect("Error while getting end part of link");
 
             let vid_download_url = format!("{}{}", self.download_base_url, end);
             debug!("Video download url: {}", vid_download_url);
@@ -77,16 +79,10 @@ impl Provider for GoGoPlay {
 
             let d_document = Html::parse_document(d_resp.as_str());
 
-            let d_selector = match Selector::parse("div.dowload") {
-                Ok(v) => v,
-                Err(_) => panic!("Failed to build selector 'div.download'"),
-            };
+            let d_selector = Selector::parse("div.dowload").expect("Failed to build 'div.download' selector");
             debug!("d_selector: {:?}", d_selector);
 
-            let d_link_selector = match Selector::parse("a") {
-                Ok(v) => v,
-                Err(_) => panic!("Failed to build selector 'a'"),
-            };
+            let d_link_selector = Selector::parse("a").expect("Failed to build 'a' selector.");
             debug!("d_link_selector: {:?}", d_link_selector);
 
             for d_element in d_document.select(&d_selector) {
@@ -153,23 +149,11 @@ impl Provider for GoGoPlay {
     fn search_anime(&self, what: &str) -> Result<Vec<Anime>> {
         let search_url: String = format!("{}/search.html?keyword={}", self.base_url, what);
         let resp = reqwest::blocking::get(search_url.as_str())?.text()?;
-
         let document = Html::parse_document(resp.as_str());
-
-        let selector = match Selector::parse("ul.listing") {
-            Ok(val) => val,
-            Err(_) => panic!("Failed to create ul.listing selector."),
-        };
-
-        let video_selector = match Selector::parse("a") {
-            Ok(val) => val,
-            Err(_) => panic!("Failed to create 'a' selector"),
-        };
-
+        let selector = Selector::parse("ul.listing").expect("Failed to create 'ul.listing' selector");
+        let video_selector = Selector::parse("a").expect("Failed to create 'a' selector.");
         let mut animes: Vec<Anime> = Vec::new();
 
-        // TODO: Fix this mess, you know you can make these much nicer and implemente them only for gogo if needed?
-        // This trait only needs to return what is expected, not to do everything required to come in that solution.
         for element in document.select(&selector) {
             for video in element.select(&video_selector) {
                 let mut tmp = Anime::default();
@@ -185,7 +169,10 @@ impl Provider for GoGoPlay {
                     None => panic!("Could not find -episode-"),
                 };
 
-                let mut episode_number = link[last_dash + episode_str.len()..].to_owned();
+                let mut episode_number = link
+                    .get(last_dash + episode_str.len()..)
+                    .expect("Error while getting episode number")
+                    .to_owned();
 
                 debug!("Episode number from title: {}", episode_number);
                 if episode_number.parse::<u32>().is_err() {
@@ -196,7 +183,11 @@ impl Provider for GoGoPlay {
 
                 tmp.max_episode = Some(number);
 
-                tmp.root_url = format!("{}{}", self.base_url, link[..last_dash].to_string());
+                tmp.root_url = format!(
+                    "{}{}",
+                    self.base_url,
+                    link.get(..last_dash).expect("Error while formatting root url").to_string()
+                );
 
                 tmp.title = get_title_from_url(&link)?;
 
@@ -295,8 +286,6 @@ mod test {
         );
     }
 
-    // TODO: Token in url is generated on load, so cannot test this as for now. Look way to only partial comparsion in string.
-    #[ignore]
     #[test]
     fn test_anime_episode() {
         let gogo = GoGoPlay::default();
@@ -307,24 +296,6 @@ mod test {
             qualities:   None,
         };
 
-        assert_eq!(
-            gogo.anime_episode(test_anime, 1).unwrap(),
-            Anime {
-                title: "bleach-movie-2-the-diamond-dust-rebellion".to_string(),
-                root_url:
-                    "https://gogo-play.net/videos/bleach-movie-2-the-diamond-dust-rebellion"
-                        .to_string(),
-                max_episode: Some(1),
-                qualities: Some(
-                    vec![Episode{ quality: Quality::P360, url: "https://cdn6.cloud9xx.com/user1342/d41902e8565730403c9a5e6a66468d24/EP.1.360p.mp4?token=_MHHryK3ACnYdiH8HhwPMQ&expires=1616792244&id=40445".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "https://streamsb.net/d/1uif2b9szp8n.html".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "https://streamtape.com/v/Dj8MPk03xqtka69/bleach-movie-2-the-diamond-dust-rebellion-episode-1.mp4".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "https://dood.to/d/8mqh9jsx8l4u".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "https://fcdn.stream/f/zyvn-nnz8o1".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "https://mixdrop.co/f/7rrvjlvvaedprw".to_string()},
-                         Episode{ quality: Quality::Unknown, url: "http://www.mp4upload.com/yweqp5bwon2s".to_string()}]
-                )
-            }
-        );
+        assert!(gogo.anime_episode(test_anime, 1).is_ok());
     }
 }

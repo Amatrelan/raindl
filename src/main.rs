@@ -1,9 +1,27 @@
+#![warn(clippy::all)]
+#![warn(clippy::as_conversions)]
+#![warn(clippy::cargo_common_metadata)]
+#![warn(clippy::wildcard_dependencies)]
+#![warn(clippy::cast_lossless)]
+#![warn(clippy::checked_conversions)]
+#![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::cognitive_complexity)]
+#![warn(clippy::create_dir)]
+#![warn(clippy::dbg_macro)]
+#![warn(clippy::get_unwrap)]
+#![warn(clippy::indexing_slicing)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::unwrap_in_result)]
+#![warn(clippy::verbose_file_reads)]
+#![warn(clippy::wildcard_enum_match_arm)]
+#![warn(clippy::wildcard_imports)]
+
 use std::process::{Command, Stdio};
 
 use anime_dl::provider::{GoGoPlay, Provider};
 use clap::Clap;
 use log::info;
-use simplelog::*;
+use simplelog::{ColorChoice, CombinedLogger, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 
 pub struct QuerySet {
     pub provider: Option<Box<dyn Provider>>,
@@ -68,15 +86,12 @@ fn main() {
 
     let mut search = QuerySet::default();
 
-    match opts.provider.as_ref() {
-        "gogoplay" => {
-            info!("GoGoPlay provider selected");
-            search.provider = Some(Box::new(GoGoPlay::default()));
-        }
-        _ => {
-            info!("GoGoPlay provider selected by default");
-            search.provider = Some(Box::new(GoGoPlay::default()))
-        }
+    if opts.provider == "gogoplay" {
+        info!("GoGoPlay provider selected");
+        search.provider = Some(Box::new(GoGoPlay::default()));
+    } else {
+        info!("GoGoPlay provider selected by default");
+        search.provider = Some(Box::new(GoGoPlay::default()))
     }
 
     search.series = opts.series;
@@ -85,12 +100,11 @@ fn main() {
 
     let mut found = vec![];
     if let Some(provider) = &search.provider {
-        found = match provider.search_anime(&search.series) {
-            Ok(val) => val,
-            Err(_) => {
-                eprintln!("404 Anime not found");
-                std::process::exit(10);
-            }
+        found = if let Ok(val) = provider.search_anime(&search.series) {
+            val
+        } else {
+            eprintln!("404 Anime not found");
+            std::process::exit(10);
         }
     }
 
@@ -104,18 +118,19 @@ fn main() {
         let link = search
             .provider
             .expect("Provider is not defined?")
-            .anime_episode(found[0].clone(), search.episode.unwrap())
+            .anime_episode(found.get(0).expect("Could not get anime index 0").clone(), search.episode.unwrap())
             .expect("Episode with that number not found");
 
         if let Some(qualities) = link.qualities {
-            let mut highest = &qualities[0];
+            // let mut highest = &qualities[0];
+            let mut highest = qualities.get(0).expect("No anime found!");
 
             for each in &qualities {
                 if highest.quality > each.quality {
                     continue;
-                } else {
-                    highest = each;
                 }
+
+                highest = each;
             }
 
             if opts.watch {
