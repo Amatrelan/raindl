@@ -1,5 +1,4 @@
-#+TITLE: Readme
-* Before everything
+** Before everything
 i dev on linux, so if there is problem in windows side can't do much, tests runs on windows too so something is working.
 
 * How
