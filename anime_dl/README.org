@@ -1,0 +1,5 @@
+#+TITLE: anime-dl
+
+This is library what raindl uses.
+
+Manages most of things as raindl is just front-end for this library.

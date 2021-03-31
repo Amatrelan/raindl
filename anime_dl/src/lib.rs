@@ -1,14 +1,20 @@
-// TODO: When I have time I will fix these, for now commented out but setted up so I can start when I have time
-// #![deny(clippy::unwrap_in_result)]
-// #![deny(clippy::get_unwrap)]
-// #![deny(clippy::cargo_common_metadata)]
-// #![deny(clippy::cast_lossless)]
-// #![deny(clippy::checked_conversions)]
-// #![deny(clippy::clone_on_ref_ptr)]
-// #![deny(clippy::cognitive_complexity)]
-// #![deny(clippy::create_dir)]
-// #![deny(clippy::dbg_macro)]
-// #![deny(clippy::pedantic)]
+#![warn(clippy::all)]
+#![warn(clippy::as_conversions)]
+#![warn(clippy::cargo_common_metadata)]
+#![warn(clippy::wildcard_dependencies)]
+#![warn(clippy::cast_lossless)]
+#![warn(clippy::checked_conversions)]
+#![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::cognitive_complexity)]
+#![warn(clippy::create_dir)]
+#![warn(clippy::dbg_macro)]
+#![warn(clippy::get_unwrap)]
+#![warn(clippy::indexing_slicing)]
+#![warn(clippy::pedantic)]
+// #![warn(clippy::unwrap_in_result)] // Need to find a way to fix some libraries so can use ?.
+#![warn(clippy::verbose_file_reads)]
+#![warn(clippy::wildcard_enum_match_arm)]
+#![warn(clippy::wildcard_imports)]
 
 pub mod error;
 pub mod provider;
